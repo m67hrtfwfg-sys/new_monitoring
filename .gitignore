@@ -1,0 +1,12 @@
+pycache
+*.pyc
+*.pyo
+*.log
+.env
+*db
+sql_app.db
+history.json
+site.json
+__pycache__/
+*.py[cod]
+.DS_Store

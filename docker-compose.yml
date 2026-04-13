@@ -1,0 +1,17 @@
+services:
+  monitor-app:
+    build: .
+    container_name: site_monitor_container
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - ./data:/app/data
+    env_file:
+      - .env
+    restart: always
+volumes:
+  data: 
+networks:
+  default:
+    name: monitor_network

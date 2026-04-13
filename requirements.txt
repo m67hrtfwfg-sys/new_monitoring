@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+jinja2
+python-dotenv
+aiohttp
+apscheduler
+sqlalchemy
+python-multipart
+websockets

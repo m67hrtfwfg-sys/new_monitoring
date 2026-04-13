@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sentry Pro | Monitoring Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #0f172a; color: #fff; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; }
+        h1 { margin-bottom: 25px; font-weight: 300; letter-spacing: 1px; }
+        h1 b { color: #06b6d4; }
+
+        .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .input-box { display: flex; gap: 10px; }
+        input { padding: 12px; border-radius: 8px; border: 1px solid #334155; width: 300px; background: #1e293b; color: #fff; outline: none; }
+        input:focus { border-color: #06b6d4; }
+        button { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; background: linear-gradient(45deg, #22c55e, #06b6d4); color: #fff; font-weight: bold; }
+
+        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .card { background: #1e293b; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #334155; }
+        .card h2 { font-size: 28px; margin-bottom: 5px; }
+        .card span { opacity: .6; text-transform: uppercase; font-size: 11px; font-weight: bold; }
+
+        .table-box { background: #1e293b; border-radius: 12px; padding: 15px; border: 1px solid #334155; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 15px; text-align: center; }
+        th { opacity: .5; font-size: 13px; text-transform: uppercase; border-bottom: 2px solid #334155; }
+        tr { border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+        .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+        .up { background: #16a34a; }
+        .down { background: #dc2626; }
+        .slow { background: #f59e0b; color: #000; }
+
+        .remove { color: #ef4444; cursor: pointer; font-weight: bold; font-size: 13px; }
+        .remove:hover { text-decoration: underline; }
+
+        .chart-box { margin-top: 25px; background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; }
+        .alert { position: fixed; top: 20px; right: 20px; background: #dc2626; padding: 15px 25px; border-radius: 10px; display: none; z-index: 1000; box-shadow: 0 10px 15px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="top">
+        <h1>🚀 Sentry <b>Pro</b></h1>
+        <div class="input-box">
+            <input id="url" placeholder="https://example.com">
+            <button onclick="addSite()">ADD MONITOR</button>
+        </div>
+    </div>
+
+    <div class="cards">
+        <div class="card"><h2><span id="total">0</span></h2><span>Total Sites</span></div>
+        <div class="card"><h2><span id="up">0</span></h2><span>Up / Healthy</span></div>
+        <div class="card"><h2><span id="down">0</span></h2><span>Down / Critical</span></div>
+        <div class="card"><h2><span id="slow">0</span></h2><span>Slow / Warning</span></div>
+    </div>
+
+    <div class="table-box">
+        <table>
+            <thead>
+                <tr>
+                    <th>Target Site</th>
+                    <th>Status</th>
+                    <th>Latency</th>
+                    <th>Uptime</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+        </table>
+    </div>
+
+    <div class="chart-box">
+        <canvas id="chart" height="100"></canvas>
+    </div>
+
+    <div id="alert" class="alert"></div>
+</div>
+
+<script>
+let sites = {};
+let uptime = {};
+let historyMap = {};
+let chart;
+
+function showAlert(msg) {
+    let el = document.getElementById("alert");
+    el.innerText = msg;
+    el.style.display = "block";
+    setTimeout(() => el.style.display = "none", 4000);
+}
+function addSite() {
+    let urlInput = document.getElementById("url");
+    let url = urlInput.value.trim();
+    if(!url) return;
+    fetch(`/add-site?url=${encodeURIComponent(url)}`).then(() => {
+        urlInput.value = "";
+    });
+}
+
+function removeSite(url) {
+    if(confirm(`Delete monitor for ${url}?`)) {
+        fetch(`/delete-site?url=${encodeURIComponent(url)}`, {method:"DELETE"});
+    }
+}
+
+function render() {
+    let tbody = document.getElementById("tbody");
+    tbody.innerHTML = "";
+    let up = 0, down = 0, slow = 0;
+
+    Object.values(sites).forEach(s => {
+        if(s.status === "UP") up++;
+        else if(s.status === "DOWN") down++;
+        else if(s.status === "SLOW") slow++;
+
+        let statusClass = s.status === "UP" ? "up" : s.status === "DOWN" ? "down" : "slow";
+        let tr = document.createElement("tr");
+
+        tr.innerHTML =` 
+            <td><b>${s.site}</b></td>
+            <td><span class="badge ${statusClass}">${s.status}</span></td>
+            <td>${(s.response_time * 1000).toFixed(0)} ms</td>
+            <td>${uptime[s.site] || 0}%</td>
+            <td><span class="remove" onclick="removeSite('${s.site}')">Remove</span></td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    document.getElementById("total").innerText = Object.keys(sites).length;
+    document.getElementById("up").innerText = up;
+    document.getElementById("down").innerText = down;
+    document.getElementById("slow").innerText = slow;
+    drawChart();
+}
+
+function getColor(i) {
+    let colors = ["#22c55e", "#06b6d4", "#f59e0b", "#a855f7", "#ec4899"];
+    return colors[i % colors.length];
+}
+
+function drawChart() {
+    let ctx = document.getElementById("chart").getContext("2d");
+    let datasets = [];
+    let i = 0;
+
+    for(let site in historyMap) {
+        datasets.push({
+            label: site,
+            data: historyMap[site],
+            borderColor: getColor(i++),
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: false,
+            tension: 0.4
+        });
+    }
+
+    if(chart) chart.destroy();
+    chart = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: Array(20).fill(""),
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            animation: false,
+            plugins: { legend: { position: 'bottom', labels: { color: "#fff" } } },
+            scales: {
+                x: { display: false },
+                y: { ticks: { color: "#aaa" }, grid: { color: "rgba(255,255,255,0.05)" } }
+            }
+        }
+    });
+}
+
+function processData(data) {
+    uptime = data.uptime;
+    data.history.forEach(s => {
+        if(sites[s.site] && sites[s.site].status !== "DOWN" && s.status === "DOWN") {
+            showAlert("🚨 CRITICAL: " + s.site + " is DOWN");
+        }
+
+        sites[s.site] = s;
+        if(!historyMap[s.site]) historyMap[s.site] = [];
+        
+        historyMap[s.site].push(s.response_time * 1000);
+        if(historyMap[s.site].length > 20) historyMap[s.site].shift();
+    });
+    render();
+}
+
+// REST API Fallback
+async function fetchData() {
+    try {
+        let res = await fetch("/dashboard-data");
+        let data = await res.json();
+        processData(data);
+    } catch(e) { console.error("API error"); }
+}
+
+// WebSocket Connection
+const protocol = location.protocol === 'https:' ? 'wss://' : 'ws://';
+function connectWS() {
+    let ws = new WebSocket(protocol + location.host + "/ws");
+    ws.onmessage = (event) => processData(JSON.parse(event.data));
+    ws.onclose = () => setTimeout(connectWS, 3000); // Reconnect logic
+}
+
+fetchData();
+connectWS();
+</script>
+
+</body>
+</html>
