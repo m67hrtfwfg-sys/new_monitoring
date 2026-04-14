@@ -71,6 +71,9 @@ async def check_and_save_site(session, s, db):
             
         elif (old_status == "DOWN" or old_status == "SLOW") and final_status == "UP":
             await send_telegram(f"✅ RECOVERED: {s.url} is back to normal.")
+        
+        elif (old_status == "UP" or old_status == "SLOW") and final_status =="DOWN" :
+            await send_telegram(f"🚨 ALERT: {s.url} is DOWN")
     
     last_status[s.url] = final_status
 
