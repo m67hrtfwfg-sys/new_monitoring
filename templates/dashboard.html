@@ -80,7 +80,28 @@
     <div id="alert" class="alert"></div>
 </div>
 
+<div class="grid" id="dashboard">
+        </div>
+
+    <div style="margin-top: 40px; padding: 20px; background: #1f2937; border-radius: 12px; border: 1px solid #374151;">
+        <h2 style="color: #ef4444; margin-top: 0;">🚨 Incident Logs (Last 5 Downs)</h2>
+        <div id="log-container" style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="text-align: left; border-bottom: 2px solid #374151; color: #94a3b8;">
+                        <th style="padding: 10px;">Target Site</th>
+                        <th style="padding: 10px;">Timestamp</th>
+                        <th style="padding: 10px;">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="log-table">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
 <script>
+
 let sites = {};
 let uptime = {};
 let historyMap = {};
@@ -192,6 +213,9 @@ function processData(data) {
         if(historyMap[s.site].length > 20) historyMap[s.site].shift();
     });
     render();
+    if(data.logs) {
+       renderLogs(data.logs);
+    }
 }
 
 // REST API Fallback
@@ -213,7 +237,16 @@ function connectWS() {
 
 fetchData();
 connectWS();
-</script>
-
+function renderLogs(logs) {
+            const tableBody = document.getElementById('log-table');
+            tableBody.innerHTML = logs.map(log =>` 
+                <tr style="border-bottom: 1px solid #374151;">
+                    <td style="padding: 10px; font-weight: bold;">${log.site}</td>
+                    <td style="padding: 10px; color: #94a3b8;">${log.time}</td>
+                    <td style="padding: 10px;"><span style="color: #ef4444; background: rgba(239, 68, 68, 0.1); padding: 2px 8px; border-radius: 4px;">Down</span></td>
+                </tr>
+            `).join('');
+        }
+    </script>
 </body>
 </html>

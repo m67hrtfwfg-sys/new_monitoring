@@ -126,7 +126,7 @@ async def get_dash(r: Request, user: str = Depends(get_current_user)):
 @app.get("/dashboard-data")
 async def get_data(user: str = Depends(get_current_user)):
     db = SessionLocal()
-    uptime, history = {}, []
+    uptime, history, logs= {}, [], []
     sites = db.query(Site).all()
     for s in sites:
         total = db.query(SiteStatus).filter(SiteStatus.site_url == s.url).count()
@@ -134,8 +134,20 @@ async def get_data(user: str = Depends(get_current_user)):
         uptime[s.url] = round((up/total)*100, 1) if total else 0
         last = db.query(SiteStatus).filter(SiteStatus.site_url == s.url).order_by(SiteStatus.id.desc()).first()
         if last: history.append({"site": s.url, "status": last.status, "response_time": last.response_time})
+        recent_downs = db.query(SiteStatus).filter(
+            SiteStatus.site_url == s.url, 
+            SiteStatus.status == "DOWN"
+        ).order_by(SiteStatus.id.desc()).limit(5).all()
+        
+        for log in recent_downs:
+            logs.append({
+                "site": s.url,
+                "time": log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                "reason": "Connection Timeout"
+            })
+            
     db.close()
-    return {"history": history, "uptime": uptime}
+    return {"history": history, "uptime": uptime, "logs": logs}
 
 @app.get("/add-site")
 async def add(url: str, user: str = Depends(get_current_user)):
