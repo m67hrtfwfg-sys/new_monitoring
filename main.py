@@ -1,7 +1,6 @@
-import aiohttp, asyncio, os, time 
+import aiohttp, asyncio, os
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
 from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
