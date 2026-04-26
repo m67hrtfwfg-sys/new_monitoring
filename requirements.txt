@@ -7,3 +7,4 @@ apscheduler
 sqlalchemy
 python-multipart
 websockets
+psutil
