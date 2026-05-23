@@ -21,7 +21,8 @@ def get_system_stats():
             "cpu": psutil.cpu_percent(interval=None),
             "ram": psutil.virtual_memory().percent,
         }
-    except:
+    except Exception as e:
+        print(f"System status error:{e}")
         return {"cpu": 0, "ram": 0}
 
 def get_current_user(credentials: HTTPBasicCredentials = Depends(security)):
@@ -181,7 +182,6 @@ async def delete(url: str, user: str = Depends(get_current_user)):
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
     await ws.accept()
-    connections.add(ws)
     try:
         while True:
             await ws.receive_text()
