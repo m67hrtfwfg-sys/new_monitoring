@@ -32,7 +32,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_KEY }}
           script: |
-            cd devops-project
+            cd site-monitoring
             git pull
             docker build -t site-monitor .
             docker stop monitor || true
