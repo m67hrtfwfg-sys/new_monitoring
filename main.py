@@ -182,6 +182,7 @@ async def delete(url: str, user: str = Depends(get_current_user)):
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
     await ws.accept()
+    connections.add(ws)
     try:
         while True:
             await ws.receive_text()
