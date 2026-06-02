@@ -1,0 +1,26 @@
+name: CI/CD Pipeline 
+
+on:
+ push:
+  branches: 
+   -main
+
+
+jobs:
+ deploy:
+  runs-based: ubuntu-latest
+  steps:
+   - name:Chekout Code 
+    uses: actions/checkout@v4 
+ 
+   - name: Deploy to AWS EC2 via SSH 
+    uses: appleboy/ssh-action@1.0.3
+    with: 
+     host: ${{ secrets.EC2_HOST }}
+     username: ${{ secrets.EC2_USERNAME }}
+     key: ${{secrets.SSH_PRIVATE_KEY }}
+     script: |
+      mkdir -p ~/enterprise-project
+      cd ~/enterprise-project
+
+      echo "Coneccted successfully! Server is ready for Monitoring Stack."
