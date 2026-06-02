@@ -33,6 +33,7 @@ jobs:
             mkdir -p ~/enterprise-project
             cd ~/enterprise-project
             sudo apt-get update && sudo apt-get install git -y
+            if [ -d prometheus.yml ]; then rm -rf prometheus.yml; fi
             if [ ! -d .git ]; then
               git clone https://github.com/${{ github.repository }}.git .
             else
