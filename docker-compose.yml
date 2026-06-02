@@ -1,4 +1,7 @@
+version: '3.8'
+
 services:
+  # سرویس مانیتورینگ خودت
   monitor-app:
     build: .
     container_name: site_monitor_container
@@ -10,8 +13,34 @@ services:
     env_file:
       - .env
     restart: always
+    networks:
+      - monitor_network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    restart: always
+    networks:
+      - monitor_network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    restart: always
+    networks:
+      - monitor_network
+
 volumes:
   data: 
+
 networks:
-  default:
+  monitor_network:
     name: monitor_network
